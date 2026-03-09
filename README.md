@@ -45,18 +45,16 @@ A robust, production-grade Python framework for monitoring ERC-20 allowances and
 - `agents/`: specialized security agents (AllowanceMonitor, AIAnalyzer).
 - `config/`: Configuration management.
 
-Roadmap
-[ ] Q2 2026: Integration of Multi-chain Automated Scanning (Arbitrum, Base).
+## Roadmap
 
-[ ] Q3 2026: Autonomous "Revoke-on-Risk" action trigger.
+- [ ] **Q2 2026**: Integration of Multi-chain Automated Scanning (Arbitrum, Base).
+- [ ] **Q3 2026**: Autonomous "Revoke-on-Risk" action trigger.
+- [ ] **Q4 2026**: Voice-activated security status reports via AI interface.
 
-[ ] Q4 2026: Voice-activated security status reports via AI interface.
+## 📫 Contact
 
-📫 Contact
 I am a Senior Full-Stack Architect (10+ years exp) pivoting to AI Agent & Web3 Infrastructure.
 
-Discord:guaguagua_59889
-
-Email: lsnirvana@gmail.com
-
-DoraHacks BUIDL:https://dorahacks.io/buidl/40387
+- **Discord**: guaguagua_59889
+- **Email**: lsnirvana@gmail.com
+- **DoraHacks BUIDL**: [View Project](https://dorahacks.io/buidl/40387)
