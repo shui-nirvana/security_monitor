@@ -1,0 +1,40 @@
+2026-03-09 09:15:59,829 - __main__ - INFO - Initializing Security Monitor Framework...
+2026-03-09 09:16:00,532 - core.blockchain - INFO - Connected to RPC: https://eth-mainnet.public.blastapi.io (Chain ID: 1)
+2026-03-09 09:16:02,198 - core.blockchain - INFO - Initialized Monitor for USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+2026-03-09 09:16:02,198 - __main__ - INFO - Checking allowance for Owner: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 -> Spender: 0x612447e8d0BDB16146a0c5D94379C17067228050
+2026-03-09 09:16:02,198 - core.blockchain - ERROR - Contract call failed: 
+ABI Not Found!
+No element named `allowance` with 0 argument(s).
+Provided argument types: ()
+Provided keyword argument types: {}
+
+Tried to find a matching ABI element named `allowance`, but encountered the following problems:
+Signature: allowance(address,address), type: function
+Expected 2 argument(s) but received 0 argument(s).
+
+2026-03-09 09:16:02,198 - __main__ - CRITICAL - Critical System Failure: 'token'
+2026-03-09 09:19:48,697 - __main__ - INFO - Initializing Security Monitor Framework...
+2026-03-09 09:19:49,378 - core.blockchain - INFO - Connected to RPC: https://eth-mainnet.public.blastapi.io (Chain ID: 1)
+2026-03-09 09:19:51,038 - core.blockchain - INFO - Initialized Monitor for USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+2026-03-09 09:19:51,039 - __main__ - INFO - Checking allowance for Owner: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 -> Spender: 0x612447e8d0BDB16146a0c5D94379C17067228050
+2026-03-09 09:19:52,685 - core.blockchain - INFO - Checked Allowance: Owner=0xd8dA... -> Spender=0x6124... | Amount=0.00 USDC | Risk=LOW
+2026-03-09 09:32:54,081 - __main__ - INFO - Initializing Security Monitor Framework...
+2026-03-09 09:32:54,792 - core.blockchain - INFO - Connected to RPC: https://eth-mainnet.public.blastapi.io (Chain ID: 1)
+2026-03-09 09:32:56,412 - core.blockchain - INFO - Initialized Monitor for USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+2026-03-09 09:32:56,415 - __main__ - INFO - Checking allowance for Owner: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 -> Spender: 0x612447e8d0BDB16146a0c5D94379C17067228050
+2026-03-09 09:32:58,327 - core.blockchain - INFO - Checked Allowance: Owner=0xd8dA... -> Spender=0x6124... | Amount=0.00 USDC | Risk=LOW
+2026-03-09 09:40:13,269 - __main__ - INFO - Initializing Security Monitor Framework...
+2026-03-09 09:40:13,958 - core.blockchain - INFO - Connected to RPC: https://eth-mainnet.public.blastapi.io (Chain ID: 1)
+2026-03-09 09:40:15,648 - core.blockchain - INFO - Initialized Monitor for USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+2026-03-09 09:40:15,648 - __main__ - INFO - Checking allowance for Owner: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 -> Spender: 0x612447e8d0BDB16146a0c5D94379C17067228050
+2026-03-09 09:40:17,337 - core.blockchain - INFO - Checked Allowance: Owner=0xd8dA... -> Spender=0x6124... | Amount=0.00 USDC | Risk=LOW
+2026-03-09 09:40:17,338 - agents.ai_analyzer - INFO - Sending data to AI Analyzer (deepseek-chat)...
+2026-03-09 09:40:17,720 - agents.ai_analyzer - ERROR - AI API Error: 401 - {"error":{"message":"Authentication Fails, Your api key: ****here is invalid","type":"authentication_error","param":null,"code":"invalid_request_error"}}
+2026-03-09 09:40:35,704 - __main__ - INFO - Initializing Security Monitor Framework...
+2026-03-09 09:40:36,425 - core.blockchain - INFO - Connected to RPC: https://eth-mainnet.public.blastapi.io (Chain ID: 1)
+2026-03-09 09:40:38,167 - core.blockchain - INFO - Initialized Monitor for USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+2026-03-09 09:40:38,168 - __main__ - INFO - Checking allowance for Owner: 0xINVALID_ADDRESS -> Spender: 0x612447e8d0BDB16146a0c5D94379C17067228050
+2026-03-09 09:40:38,168 - core.blockchain - ERROR - Error checking allowance: when sending a str, it must be a hex string. Got: '0xINVALID_ADDRESS'
+2026-03-09 09:40:38,168 - agents.ai_analyzer - INFO - Sending data to AI Analyzer (deepseek-chat)...
+2026-03-09 09:40:38,514 - agents.ai_analyzer - ERROR - AI API Error: 401 - {"error":{"message":"Authentication Fails, Your api key: ****here is invalid","type":"authentication_error","param":null,"code":"invalid_request_error"}}
+2026-03-09 09:40:38,514 - __main__ - ERROR - Check Failed: when sending a str, it must be a hex string. Got: '0xINVALID_ADDRESS'
