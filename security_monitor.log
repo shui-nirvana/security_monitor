@@ -38,3 +38,9 @@ Expected 2 argument(s) but received 0 argument(s).
 2026-03-09 09:40:38,168 - agents.ai_analyzer - INFO - Sending data to AI Analyzer (deepseek-chat)...
 2026-03-09 09:40:38,514 - agents.ai_analyzer - ERROR - AI API Error: 401 - {"error":{"message":"Authentication Fails, Your api key: ****here is invalid","type":"authentication_error","param":null,"code":"invalid_request_error"}}
 2026-03-09 09:40:38,514 - __main__ - ERROR - Check Failed: when sending a str, it must be a hex string. Got: '0xINVALID_ADDRESS'
+2026-03-09 13:28:38,300 - core.blockchain - INFO - Initialized Monitor for TEST (0xTokenAddress)
+2026-03-09 13:28:38,304 - core.blockchain - INFO - Checked Allowance: Owner=0x1234... -> Spender=0x0987... | Amount=500.00 TEST | Risk=LOW
+2026-03-09 13:28:38,305 - core.blockchain - INFO - Initialized Monitor for TEST (0xTokenAddress)
+2026-03-09 13:28:38,306 - core.blockchain - INFO - Checked Allowance: Owner=0x1234... -> Spender=0x0987... | Amount=115792089237316203707617735395386539918674240093853421928448.00 TEST | Risk=HIGH (Unlimited/Excessive)
+2026-03-09 13:28:38,306 - core.blockchain - INFO - Initialized Monitor for TEST (0xTokenAddress)
+2026-03-09 13:28:38,307 - core.blockchain - INFO - Checked Allowance: Owner=0x1234... -> Spender=0x0987... | Amount=0.00 TEST | Risk=LOW
