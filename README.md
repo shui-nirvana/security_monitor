@@ -1,79 +1,138 @@
-# Blockchain Security Monitor & Guardian Agent (WDK Edition)
+# 🛡️ Guardian Agent: WDK-Powered Autonomous Security Framework
 
-**Tether Hackathon Galactica Submission**
+> **Tether Hackathon Galactica Submission**  
+> _Track: Build Agents with Tether WDK_
 
-A robust, production-grade Python framework that combines **AI Risk Analysis** with **Tether WDK** execution capabilities. This agent doesn't just watch; it **protects and acts**.
+An autonomous financial agent that combines **AI Risk Analysis (The Brain)** with **Tether WDK Execution (The Hands)**. It features a "Safety-First" architecture where deterministic logic overrides AI probability, ensuring secure autonomous fund management.
 
-## Features
+---
 
-- **🛡️ AI Guardian Agent (NEW)**: Autonomous agent that holds funds and executes transactions via **Tether WDK**, but _only_ after passing rigorous AI & Logic security checks.
-- **🔌 WDK Integration**: Direct implementation of Wallet Development Kit primitives for wallet creation, signing, and transaction management.
-- **🧠 Dual-Engine Risk Control**:
-  - **Deterministic**: Mathematical checks (e.g., Allowance > Balance).
-  - **Probabilistic**: LLM-based analysis (DeepSeek/Gemini) to detect phishing patterns.
-- **🚀 Production Ready**: Configurable via `.env`, type-safe settings, and modular architecture.
-- **🤖 AI-Native Development**: Includes `AGENTS.md` and `MCP_CONFIG.json` for seamless integration with AI coding assistants (Trae, Cursor) via Tether's official WDK MCP Server.
+## 🌟 Key Features
 
-## Quick Start
+### 1. 🧠 Dual-Engine Risk Control (Safety First)
 
-### 1. Install Dependencies
+- **The Brain (AI)**: Uses LLMs (DeepSeek/Gemini) to analyze transaction intent and detect complex phishing patterns. **Includes a built-in Simulation Mode** for demo purposes if no API key is provided.
+- **The Logic (Deterministic)**: Hardcoded safety rules (e.g., Blacklists, Allowance limits).
+- **Security Override Protocol**: **Logic > AI**. If the AI says "Safe" but the Logic says "Risky", the transaction is **BLOCKED**.
+
+### 2. 🔌 Native Tether WDK Integration
+
+- **WalletManager**: Full lifecycle management (Creation, Restoration, Signing) using real Web3/EVM primitives.
+- **NonceManager**: **[Bonus Feature]** Implements asynchronous state synchronization to handle high-concurrency Nonce conflicts during rapid agent actions.
+- **Primitives**: Direct use of WDK primitives for signing and broadcasting transactions for **USDT**, **USAT**, and **XAUT**.
+
+### 3. 🖥️ Matrix-Style Visual Dashboard
+
+- **Real-Time Visualization**: A `rich`-based immersive console UI that displays the agent's "thinking process" and WDK execution status in real-time.
+- **Live Status**: Spinner animations for AI analysis and Blockchain broadcasting.
+- **Try it now**: Run `python security_monitor/tests/visual_demo.py` to see the UI in action without configuration.
+
+### 4. 🤖 OpenClaw / Agent Framework Ready
+
+- Designed to work as the "Execution Layer" for agent frameworks like OpenClaw.
+- Separates **Reasoning** (Agent) from **Execution** (WDK).
+- **Simulation Mode**: Built-in OpenClaw simulation scenarios (e.g., injection attacks) for testing.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+### 2. Configuration
 
-Copy `.env.example` to `.env` and set your API keys.
+Copy `.env.example` to `.env` and configure your keys.
 
 ```bash
 cp .env.example .env
+# Edit .env:
+# - WDK_PRIVATE_KEY (Optional, for restoring wallet)
+# - RPC_URL (Required)
+# - LLM_API_KEY (Optional - System defaults to Simulation Mode if missing)
+# - GUARDIAN_MAX_TRANSFER_AMOUNT (Optional transfer policy limit)
+# - GUARDIAN_SUPPORTED_ASSETS (Optional asset allowlist)
 ```
 
-### 3. Usage Modes
+### 3. Run: Visual Demo (No Setup Required)
 
-#### Mode A: Passive Monitor (Scanner)
-
-Check a wallet's allowance for a specific spender.
+Experience the Matrix-style UI and Guardian workflow immediately:
 
 ```bash
-python main.py --mode monitor --owner <WALLET_ADDRESS> --spender <SPENDER_ADDRESS>
+python security_monitor/tests/visual_demo.py
 ```
 
-#### Mode B: Active Guardian (WDK Agent) [HACKATHON TRACK]
+### 4. Run: Guardian Mode (Active Agent)
 
-Instruct the agent to securely transfer funds using **WDK primitives**. The agent will **refuse** to sign if the destination is suspicious.
+In this mode, the agent autonomously holds funds and executes transfers **only if** they pass safety checks.
 
 ```bash
-# Example: Safe Transfer
-python main.py --mode guardian --action transfer --to 0xSafeAddress... --amount 100
+# 🟢 Safe Transfer Scenario (USD₮)
+python main.py --mode guardian --action transfer --asset USDT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 50
 
-# Example: The Agent will BLOCK this if it detects a phishing address
-python main.py --mode guardian --action transfer --to 0xPhishingAddress... --amount 100
+# 🟢 Safe Transfer Scenario (USA₮ / XAU₮)
+python main.py --mode guardian --action transfer --asset USAT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 20
+python main.py --mode guardian --action transfer --asset XAUT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 1
+
+# 🔴 Phishing Simulation (Security Override)
+# Target is the 'dead' address, which triggers a Logic Block
+python main.py --mode guardian --action transfer --asset USDT --to 0x000000000000000000000000000000000000dEaD --amount 50
+
+# 🔴 OpenClaw Injection Simulation (AI Block)
+# Target is a known malicious contract in the simulation database
+python main.py --mode guardian --action transfer --asset USDT --to 0x6666666666666666666666666666666666666666 --amount 100
 ```
 
-## Architecture
+### 4. Run: Monitor Mode (Passive Scanner)
 
-- `core/wdk_client.py`: **[HACKATHON] Tether WDK Interface** (Wallet creation, Signing, Sending).
-- `agents/guardian_agent.py`: **[HACKATHON] The Brain + Hands**. Integrates risk analysis with WDK execution.
-- `agents/allowance_monitor.py`: Logic-based risk engine.
-- `agents/ai_analyzer.py`: LLM-based security auditor.
+Standard ERC20 allowance auditing.
 
-For a detailed visual breakdown, see **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
+```bash
+python main.py --mode monitor --owner <ADDRESS> --spender <ADDRESS>
+```
 
-## Hackathon Track Compliance: "Build Agents with Tether WDK"
+---
 
-This project fulfills the track requirements by:
+## 🏗️ Architecture
 
-1.  **Direct WDK Usage**: Implemented in `core/wdk_client.py`.
-2.  **Autonomous Management**: `GuardianAgent` manages funds and makes transfer decisions independently.
-3.  **Safety First**: The agent's primary directive is security, leveraging OpenClaw-style reasoning before any WDK action.
-4.  **AI-Native Workflow**: Project structure optimized for AI pair programming with `AGENTS.md` (WDK Context) and `MCP_CONFIG.json` (Tether Documentation Server).
+| Component             | File                                                           | Responsibility                                                                   |
+| --------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Guardian Agent**    | [`agents/guardian_agent.py`](./agents/guardian_agent.py)       | **The Orchestrator**. Coordinates Brain & Hands. Implements "Security Override". |
+| **WDK Client**        | [`core/wdk_client.py`](./core/wdk_client.py)                   | **The Hands**. WDK primitives, `WalletAccount`, `NonceManager`.                  |
+| **Allowance Monitor** | [`agents/allowance_monitor.py`](./agents/allowance_monitor.py) | **The Logic**. Deterministic safety checks.                                      |
+| **AI Analyzer**       | [`agents/ai_analyzer.py`](./agents/ai_analyzer.py)             | **The Brain**. Probabilistic risk assessment.                                    |
+| **Visualizer**        | [`utils/matrix_ui.py`](./utils/matrix_ui.py)                   | **The UI**. Matrix-style console rendering.                                      |
 
-## Roadmap
+> 📚 See [ARCHITECTURE.md](./ARCHITECTURE.md) for a detailed system design.
 
-- [ ] **Q2 2026**: Integration of Multi-chain Automated Scanning (Arbitrum, Base).
-- [ ] **Q3 2026**: Autonomous "Revoke-on-Risk" action trigger.
+---
+
+## 🧪 Test Cases & Verification
+
+We have designed specific scenarios to verify Hackathon compliance, including:
+
+1.  **Autonomous Safe Transfer**: Agent manages WDK wallet and signs valid tx.
+2.  **Phishing Interception**: Agent refuses to sign for malicious addresses.
+3.  **OpenClaw Injection Sim**: Simulating a compromised AI brain being overridden by Guardian's safety logic.
+
+> 🧪 See [TEST_CASES.md](./TEST_CASES.md) for full execution logs and scenarios.
+
+---
+
+## ✅ Hackathon Track Compliance
+
+This project fulfills the **"Build Agents with Tether WDK"** track requirements:
+
+- [x] **Integrate Tether WDK**: Uses WDK primitives for all wallet operations.
+- [x] **Autonomous Fund Management**: Agent policy layer supports USD₮ / USA₮ / XAU₮ asset routing.
+- [x] **Emphasis on Safety**: Implements "Security Override" (Logic > AI) and strict permission checks.
+- [x] **Agent Reasoning**: Uses LLM for context analysis (OpenClaw equivalent).
+- [x] **Bonus**: Implemented `NonceManager` for async state sync.
+
+---
 
 ## 📫 Contact
 

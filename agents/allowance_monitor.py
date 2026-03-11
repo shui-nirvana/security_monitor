@@ -1,6 +1,8 @@
-from typing import Dict, Any, Optional
+from typing import Any, Dict
+
 from web3 import Web3
-from core.blockchain import BlockchainClient, logger
+
+from security_monitor.core.blockchain import BlockchainClient, logger
 
 # Standard ERC-20 ABI (Minimal for Allowance)
 ERC20_ABI = [
@@ -52,7 +54,7 @@ class AllowanceMonitorAgent:
         self.contract = self.client.get_contract(token_address, ERC20_ABI)
         self.token_symbol = self._get_symbol()
         self.decimals = self._get_decimals()
-        
+
         logger.info(f"Initialized Monitor for {self.token_symbol} ({token_address})")
 
     def _get_symbol(self) -> str:
@@ -78,13 +80,13 @@ class AllowanceMonitorAgent:
             # Ensure addresses are checksummed
             owner_checksum = Web3.to_checksum_address(owner)
             spender_checksum = Web3.to_checksum_address(spender)
-            
+
             # Get Raw Allowance
             # Note: client.call_contract_function expects (func, *args)
             allowance_wei = self.client.call_contract_function(
                 self.contract.functions.allowance, owner_checksum, spender_checksum
             )
-            
+
             if allowance_wei is None:
                 logger.error(f"Failed to fetch allowance for {owner} -> {spender}")
                 return {"status": "error", "error": "Failed to fetch allowance"}
@@ -93,16 +95,16 @@ class AllowanceMonitorAgent:
             balance_wei = self.client.call_contract_function(
                 self.contract.functions.balanceOf, owner_checksum
             )
-            
+
             if balance_wei is None:
                 balance_wei = 0
                 logger.warning(f"Failed to fetch balance for {owner}, assuming 0")
 
-            
+
             # Format Values
             allowance_fmt = allowance_wei / (10 ** self.decimals)
             balance_fmt = balance_wei / (10 ** self.decimals) if balance_wei else 0
-            
+
             risk_level = "LOW"
             if allowance_wei > 0:
                 if allowance_wei > balance_wei and balance_wei > 0:

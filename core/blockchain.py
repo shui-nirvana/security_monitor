@@ -1,11 +1,10 @@
 import logging
 import time
-from typing import Optional, Any
-from web3 import Web3
-from requests.exceptions import RequestException
-from eth_typing import Address, ChecksumAddress
+from typing import Any
 
-from config.settings import get_settings
+from web3 import Web3
+
+from security_monitor.config.settings import get_settings
 
 # Configure Logging
 settings = get_settings()
@@ -43,7 +42,7 @@ class BlockchainClient:
             except Exception as e:
                 logger.warning(f"Connection attempt {attempt+1}/{retries} failed: {str(e)}")
                 time.sleep(2)
-        
+
         logger.critical("Failed to connect to Blockchain RPC after multiple attempts.")
         raise ConnectionError("Could not connect to RPC Node")
 
