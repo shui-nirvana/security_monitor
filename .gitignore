@@ -1,0 +1,10 @@
+# Ignore Log files
+*.log
+security_monitor.log
+
+# Ignore Environment Variables
+.env
+
+# Ignore Python specific files
+__pycache__/
+*.pyc
