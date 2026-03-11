@@ -3,7 +3,7 @@ import sys
 import logging
 from config.settings import get_settings
 from core.blockchain import BlockchainClient
-from core.wdk_client import WDKClient
+from core.wdk_client import WalletManager
 from agents.allowance_monitor import AllowanceMonitorAgent
 from agents.ai_analyzer import AIAnalyzer
 from agents.guardian_agent import GuardianAgent
@@ -108,12 +108,16 @@ def run_guardian_mode(args, monitor, ai_analyzer):
         logger.error("Guardian Mode requires --action, --to, and --amount.")
         sys.exit(1)
 
-    # Initialize WDK Client (Simulated for Demo)
-    wdk = WDKClient()
-    wdk.create_wallet() # In a real app, we'd load an existing wallet securely
+    # Initialize WDK Manager (Orchestrator)
+    logger.info("Initializing WDK Wallet Manager...")
+    wdk_manager = WalletManager()
+    
+    # Create or Load a Wallet Account (The Actor)
+    # In a real app, we might use wdk_manager.restore_wallet(private_key)
+    wallet_account = wdk_manager.create_wallet(chain="evm")
     
     # Initialize Guardian Agent (The Brain + Hands)
-    guardian = GuardianAgent(wdk, monitor, ai_analyzer)
+    guardian = GuardianAgent(wallet_account, monitor, ai_analyzer)
     
     if args.action == 'transfer':
         logger.info(f"Guardian Agent: Initiating secure transfer via WDK...")
@@ -126,8 +130,8 @@ def run_guardian_mode(args, monitor, ai_analyzer):
         if result.get('status') == 'success':
             print("✅ TRANSACTION EXECUTED VIA WDK")
             print(f"Transaction Hash: {result.get('tx_hash')}")
-            print(f"From:   {result.get('from')}")
-            print(f"To:     {result.get('to')}")
+            print(f"From:   {result.get('from_address')}")
+            print(f"To:     {result.get('to_address')}")
             print(f"Amount: {result.get('amount')} {result.get('token')}")
         else:
             print("🛑 TRANSACTION BLOCKED BY AI GUARDIAN")

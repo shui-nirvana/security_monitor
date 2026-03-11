@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "wdk-docs": {
+      "url": "https://docs.wallet.tether.io/~gitbook/mcp",
+      "description": "Tether WDK Documentation - MCP Server. Provides AI agents with real-time access to WDK API references, quickstarts, and guides."
+    }
+  },
+  "integration_instructions": {
+    "cursor": "Copy the 'mcpServers' object to ~/.cursor/mcp.json",
+    "trae": "Add this configuration to your project's AI settings (if supported) or use as reference for manual context injection.",
+    "vscode": "Use with compatible MCP extensions."
+  }
+}

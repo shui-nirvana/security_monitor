@@ -12,6 +12,7 @@ A robust, production-grade Python framework that combines **AI Risk Analysis** w
   - **Deterministic**: Mathematical checks (e.g., Allowance > Balance).
   - **Probabilistic**: LLM-based analysis (DeepSeek/Gemini) to detect phishing patterns.
 - **🚀 Production Ready**: Configurable via `.env`, type-safe settings, and modular architecture.
+- **🤖 AI-Native Development**: Includes `AGENTS.md` and `MCP_CONFIG.json` for seamless integration with AI coding assistants (Trae, Cursor) via Tether's official WDK MCP Server.
 
 ## Quick Start
 
@@ -65,7 +66,7 @@ This project fulfills the track requirements by:
 1.  **Direct WDK Usage**: Implemented in `core/wdk_client.py`.
 2.  **Autonomous Management**: `GuardianAgent` manages funds and makes transfer decisions independently.
 3.  **Safety First**: The agent's primary directive is security, leveraging OpenClaw-style reasoning before any WDK action.
-4.  **Clear Separation**: Distinct modules for Agent Logic (`agents/`) and WDK Execution (`core/wdk_client.py`).
+4.  **AI-Native Workflow**: Project structure optimized for AI pair programming with `AGENTS.md` (WDK Context) and `MCP_CONFIG.json` (Tether Documentation Server).
 
 ## Roadmap
 
