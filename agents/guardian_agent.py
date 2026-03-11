@@ -12,6 +12,13 @@ from core.wdk_client import WalletAccount, WDKError
 from agents.allowance_monitor import AllowanceMonitorAgent
 from agents.ai_analyzer import AIAnalyzer
 
+try:
+    from rich.console import Console
+    from rich.status import Status
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -34,6 +41,7 @@ class GuardianAgent:
         self.monitor = monitor       # [Logic] The 'Brain' - Deterministic Logic
         self.ai = ai_analyzer        # [AI]    The 'Intuition' - Probabilistic Analysis
         self.risk_threshold = "MEDIUM" # Configurable: Only execute if risk is LOW or NONE
+        self.console = Console() if RICH_AVAILABLE else None
         logger.info(f"[Guardian Agent] Initialized. Managing Wallet: {self.wallet.address}")
 
     def run_transfer_task(self, to_address: str, amount: float, token_symbol: str = "USDT") -> Dict[str, Any]:
@@ -49,11 +57,22 @@ class GuardianAgent:
         """
         logger.info(f"[Guardian Agent] Received task -> Transfer {amount} {token_symbol} to {to_address}")
         
+        if RICH_AVAILABLE:
+            self.console.print(f"[bold cyan]>>> [COMMAND] INITIATE TRANSFER: {amount} {token_symbol} -> {to_address}[/bold cyan]")
+        
         # --- Step 1: Pre-Execution Safety Check (The "Brain") ---
-        is_safe, risk_reason = self._assess_risk(to_address)
+        # Using Rich Status Spinner for Visualization
+        if RICH_AVAILABLE:
+            with self.console.status("[bold yellow][BRAIN] Analyzing target address via Gemini/DeepSeek...", spinner="dots"):
+                is_safe, risk_reason = self._assess_risk(to_address)
+        else:
+            is_safe, risk_reason = self._assess_risk(to_address)
         
         if not is_safe:
-            logger.warning(f"[Guardian Agent] BLOCKED transfer to {to_address}. Reason: {risk_reason}")
+            msg = f"[Guardian Agent] BLOCKED transfer to {to_address}. Reason: {risk_reason}"
+            logger.warning(msg)
+            if RICH_AVAILABLE:
+                self.console.print(f"[bold red]🛑 [STATUS] BLOCKED! {risk_reason}[/bold red]")
             return {
                 "status": "blocked",
                 "reason": risk_reason,
@@ -62,12 +81,24 @@ class GuardianAgent:
             
         # --- Step 2: Execution via WDK (The "Hands") ---
         logger.info(f"[Guardian Agent] Safety Check Passed. Invoking WDK primitives...")
+        if RICH_AVAILABLE:
+             self.console.print(f"[bold green]✅ [STATUS] RISK LOW. AUTHORIZING WDK EXECUTION.[/bold green]")
+             
         try:
             # [WDK] Direct Primitive Call
-            result = self.wallet.send_transaction(to_address, amount, token_symbol)
+            if RICH_AVAILABLE:
+                with self.console.status("[bold blue][WDK] Preparing secure signature & Broadcasting...", spinner="earth"):
+                     result = self.wallet.send_transaction(to_address, amount, token_symbol)
+            else:
+                result = self.wallet.send_transaction(to_address, amount, token_symbol)
+                
+            if RICH_AVAILABLE:
+                self.console.print(f"[bold green]🚀 [WDK] TRANSACTION SUCCESS: {result['tx_hash']}[/bold green]")
             return result
         except WDKError as e:
             logger.error(f"[Guardian Agent] WDK Execution Failed: {str(e)}")
+            if RICH_AVAILABLE:
+                self.console.print(f"[bold red]❌ [WDK] EXECUTION FAILED: {str(e)}[/bold red]")
             return {"status": "error", "message": str(e)}
         except Exception as e:
             logger.error(f"[Guardian Agent] Unexpected Error: {str(e)}")
@@ -76,15 +107,27 @@ class GuardianAgent:
     def _assess_risk(self, target_address: str) -> (bool, str):
         """
         Internal method to combine Deterministic Logic + AI Probabilistic Reasoning.
+        
+        [Security Override Principle]
+        The system enforces a "Safety-First" policy. 
+        If ANY module (Logic or AI) flags a risk, the transaction is BLOCKED.
+        Logic Check (Deterministic) > AI Check (Probabilistic).
+        
         Returns: (is_safe: bool, reason: str)
         """
-        # 1. Basic Format Check (Logic)
+        # 1. Deterministic Logic Check (The "Hard" Rules)
+        # Check 1.1: Format Validation
         if not self.monitor.client.w3.is_address(target_address):
              return False, "Invalid Ethereum Address Format"
              
-        # 2. Advanced Risk Check (AI / Logic)
-        # In a real Hackathon demo, this would query the AI for reputation data.
-        
+        # Check 1.2: Local Blacklist (Hardcoded Security Override)
+        # Simulating a local database of known bad actors
+        BLACKLIST = ["0x000000000000000000000000000000000000dead"]
+        if target_address.lower() in BLACKLIST:
+            return False, "Blocked by Local Blacklist (Deterministic Logic)"
+
+        # 2. Advanced Risk Check (AI / Probabilistic)
+        # Only consulted if Deterministic Logic passes.
         if self.ai:
             logger.info("[Guardian Agent] Consulting AI Brain for address analysis...")
             # Mocking AI decision for demo purposes

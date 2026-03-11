@@ -59,6 +59,8 @@ python main.py --mode guardian --action transfer --to 0xPhishingAddress... --amo
 - `agents/allowance_monitor.py`: Logic-based risk engine.
 - `agents/ai_analyzer.py`: LLM-based security auditor.
 
+For a detailed visual breakdown, see **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
+
 ## Hackathon Track Compliance: "Build Agents with Tether WDK"
 
 This project fulfills the track requirements by:

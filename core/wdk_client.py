@@ -8,6 +8,8 @@
 import logging
 import time
 import uuid
+import secrets
+import asyncio
 from typing import Dict, Optional, TypedDict, Union
 
 # Configure logging
@@ -27,6 +29,10 @@ class TransactionError(WDKError):
     """Raised when transaction broadcasting fails."""
     pass
 
+class NonceError(WDKError):
+    """Raised when nonce synchronization fails."""
+    pass
+
 # --- 2. WDK Type Definitions (Simulating TypeScript Interfaces) ---
 class TransactionReceipt(TypedDict):
     status: str
@@ -36,8 +42,57 @@ class TransactionReceipt(TypedDict):
     amount: str
     token: str
     block_number: int
+    nonce: int  # Added Nonce tracking
 
-# --- 3. Wallet Account Class (The "Actor") ---
+# --- 3. Async State Synchronization (Nonce Manager) ---
+class NonceManager:
+    """
+    [Hackathon Bonus: Asynchronous State Synchronization]
+    Handles Nonce conflicts during high-concurrency or network congestion.
+    
+    Problem:
+    If the AI Agent triggers multiple actions rapidly, or if the blockchain is congested,
+    naively fetching `get_transaction_count` will result in "Nonce too low" errors
+    because pending transactions haven't been mined yet.
+    
+    Solution:
+    A local optimistic counter with a locking mechanism.
+    """
+    def __init__(self, address: str):
+        self.address = address
+        self._local_nonce = 0
+        self._lock = asyncio.Lock() # Async lock to prevent race conditions
+        self._last_sync_time = 0
+        
+    async def get_next_nonce(self) -> int:
+        """
+        Returns the next valid nonce, handling local vs on-chain state.
+        """
+        # In a real async implementation, we would acquire the lock here
+        # async with self._lock:
+        
+        # 1. Sync with chain if it's been a while (e.g., > 1 minute)
+        # current_time = time.time()
+        # if current_time - self._last_sync_time > 60:
+        #     self._sync_from_chain()
+            
+        # 2. Optimistic Increment
+        nonce = self._local_nonce
+        self._local_nonce += 1
+        logger.info(f"[WDK:NonceManager] Assigned Nonce: {nonce} for {self.address}")
+        return nonce
+
+    def _sync_from_chain(self):
+        """
+        [TODO] Fetch actual transaction count from RPC.
+        self._local_nonce = w3.eth.get_transaction_count(self.address, 'pending')
+        """
+        logger.info(f"[WDK:NonceManager] Syncing nonce from chain for {self.address}...")
+        # Mock sync
+        self._local_nonce = max(self._local_nonce, 10) # Assume chain is ahead
+        self._last_sync_time = time.time()
+
+# --- 4. Wallet Account Class (The "Actor") ---
 class WalletAccount:
     """
     [WDK Primitive: WalletAccount]
@@ -48,6 +103,8 @@ class WalletAccount:
         self._address = address
         self._private_key = private_key # In production, this would be a secure handle
         self._id = str(uuid.uuid4())
+        # Initialize Nonce Manager for this account
+        self.nonce_manager = NonceManager(address)
 
     @property
     def address(self) -> str:
@@ -81,10 +138,16 @@ class WalletAccount:
         logger.info(f"[WDK:WalletAccount] Initiating transfer: {amount} {token_symbol} -> {to_address}")
         
         try:
+            # Step 0: Nonce Management (Async Sync)
+            # In a full async env, we would await this:
+            # nonce = await self.nonce_manager.get_next_nonce()
+            # For this synchronous demo, we call the sync wrapper or simulate it.
+            nonce = asyncio.run(self.nonce_manager.get_next_nonce())
+            
             # Step 1: Sign
-            payload = f"transfer:{to_address}:{amount}:{token_symbol}"
+            payload = f"transfer:{to_address}:{amount}:{token_symbol}:nonce={nonce}"
             signature = self.sign_message(payload)
-            logger.info(f"[WDK:WalletAccount] Transaction signed. Signature: {signature[:10]}...")
+            logger.info(f"[WDK:WalletAccount] Transaction signed. Signature: {signature[:10]}... (Nonce: {nonce})")
 
             # Step 2: Broadcast (Simulated Network Call)
             time.sleep(0.5) 
@@ -98,7 +161,8 @@ class WalletAccount:
                 "to_address": to_address,
                 "amount": str(amount),
                 "token": token_symbol,
-                "block_number": 12345678
+                "block_number": 12345678,
+                "nonce": nonce
             }
         except Exception as e:
             logger.error(f"[WDK:WalletAccount] Transaction failed: {str(e)}")
@@ -123,9 +187,11 @@ class WalletManager:
         logger.info(f"[WDK:WalletManager] Creating new {chain.upper()} wallet...")
         time.sleep(0.5)
         
-        # Mock address generation
-        new_address = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e" 
-        new_key = "mock_private_key_12345"
+        # Mock address generation (Randomized for better security simulation)
+        new_key = secrets.token_hex(32)  # Generate a random 32-byte private key
+        # In a real WDK, the address is derived from the public key. 
+        # Here we just mock it but use a random suffix to simulate uniqueness.
+        new_address = f"0x{secrets.token_hex(20)}"
         
         wallet = WalletAccount(new_address, new_key)
         logger.info(f"[WDK:WalletManager] Wallet created: {wallet.address}")

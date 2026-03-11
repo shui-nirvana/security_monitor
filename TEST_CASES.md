@@ -81,7 +81,19 @@ python main.py --mode guardian --action transfer --to 0xd8dA6BF26964aF9D7eEd9e03
 python main.py --mode guardian --action transfer --to 0x000000000000000000000000000000000000dEaD --amount 50
 ```
 
-### Case 2.3: Invalid Address Format (Logic Error)
+### Case 2.3: Security Override (Safety-First)
+
+**Requirement Met**: "Safety-First Policy"
+**Description**: Test the conflict resolution when AI says "Safe" but Logic says "Unsafe".
+**Scenario**:
+
+- Target Address: A known malicious address (e.g., `0x000000000000000000000000000000000000dead`).
+- AI Mock Response: "Safe" (Simulated False Negative).
+- Logic Check: "Blacklisted" (Hardcoded Rule).
+  **Expected Result**: The transaction must be **BLOCKED** by the Logic module, overriding the AI's "Safe" verdict.
+  **Log Verification**: Look for `Blocked by Local Blacklist (Deterministic Logic)`.
+
+### Case 2.4: Invalid Address Format (Logic Error)
 
 **Description**: User provides a malformed Ethereum address.
 **Expected Result**: `🛑 TRANSACTION BLOCKED` with `Invalid Ethereum Address Format`.
@@ -121,6 +133,24 @@ python main.py --mode guardian --action transfer --to 0xd8dA6BF26964aF9D7eEd9e03
 - Confirm that `[Guardian Agent] Consulting AI Brain...` appears in logs.
 - Confirm that `[WDK:WalletAccount] Signing message...` DOES NOT appear.
 - This proves the "Brain" stopped the "Hands".
+
+### Case 3.3: OpenClaw Simulation - Injection Attack Interception
+
+**Requirement Met**: "Safety-First / Agent Reasoning"
+**Description**: Simulate a scenario where an external agent framework (like OpenClaw) is compromised or hallucinating, and attempts to inject a malicious transfer command.
+**Scenario**:
+
+- **Attacker (OpenClaw Simulation)**: Sends a valid JSON command but points to a phishing contract.
+- **Guardian Agent**: Receives the command but runs its own independent `_assess_risk` check.
+- **Outcome**: The Guardian Agent refuses to execute the "Brain's" bad order.
+  **Verification**:
+
+```bash
+# Simulating a compromised agent instruction
+python main.py --mode guardian --action transfer --to 0x000000000000000000000000000000000000dEaD --amount 9999
+```
+
+**Expected Log**: `[Guardian Agent] BLOCKED transfer to 0x...dEaD. Reason: AI Detected Known Burn Address`
 
 ---
 

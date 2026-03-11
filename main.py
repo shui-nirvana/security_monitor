@@ -23,7 +23,22 @@ def main():
     settings = get_settings()
     
     # CLI Argument Parsing
-    parser = argparse.ArgumentParser(description="Blockchain Security Monitor & WDK Guardian Agent")
+    parser = argparse.ArgumentParser(
+        description="""
+        Blockchain Security Monitor & WDK Guardian Agent
+        ================================================
+        
+        Features:
+        - 🛡️ AI Guardian Agent (NEW): Autonomous agent that holds funds and executes transactions via Tether WDK.
+        - 🔌 WDK Integration: Direct implementation of Wallet Development Kit primitives.
+        - 🧠 Dual-Engine Risk Control: Deterministic Logic + Probabilistic AI.
+        
+        Usage Modes:
+        1. Monitor Mode: Passive scanning (Standard Auditing).
+        2. Guardian Mode: Active Agent using Tether WDK (Hackathon Galactica).
+        """,
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     
     # Mode Selection (Monitor vs Guardian)
     parser.add_argument("--mode", choices=['monitor', 'guardian'], default='monitor', help="Operational Mode: 'monitor' (Passive) or 'guardian' (Active Agent with WDK)")
@@ -113,30 +128,71 @@ def run_guardian_mode(args, monitor, ai_analyzer):
     wdk_manager = WalletManager()
     
     # Create or Load a Wallet Account (The Actor)
-    # In a real app, we might use wdk_manager.restore_wallet(private_key)
-    wallet_account = wdk_manager.create_wallet(chain="evm")
+    # Check for private key in environment variables (Secure Pattern)
+    import os
+    env_key = os.getenv("WDK_PRIVATE_KEY")
+    
+    if env_key:
+        logger.info("[Main] Found WDK_PRIVATE_KEY in environment. Restoring wallet...")
+        wallet_account = wdk_manager.restore_wallet(env_key)
+    else:
+        logger.info("[Main] No private key found. Creating new ephemeral wallet...")
+        wallet_account = wdk_manager.create_wallet(chain="evm")
     
     # Initialize Guardian Agent (The Brain + Hands)
     guardian = GuardianAgent(wallet_account, monitor, ai_analyzer)
     
     if args.action == 'transfer':
+        # Enhanced UX for Guardian Mode
+        try:
+            from rich.console import Console
+            console = Console()
+            console.rule("[bold green]STARTING GUARDIAN SEQUENCE[/bold green]")
+        except ImportError:
+            pass
+
         logger.info(f"Guardian Agent: Initiating secure transfer via WDK...")
         result = guardian.run_transfer_task(args.to, args.amount, "USDT")
         
-        print("\n" + "="*50)
-        print(f"GUARDIAN AGENT REPORT: {result.get('status', 'UNKNOWN').upper()}")
-        print("="*50)
+        # Clean Output for Results
+        if 'console' in locals():
+            console.rule("[bold green]MISSION REPORT[/bold green]")
+        else:
+            print("\n" + "="*50)
+            print(f"GUARDIAN AGENT REPORT: {result.get('status', 'UNKNOWN').upper()}")
+            print("="*50)
         
         if result.get('status') == 'success':
-            print("✅ TRANSACTION EXECUTED VIA WDK")
-            print(f"Transaction Hash: {result.get('tx_hash')}")
-            print(f"From:   {result.get('from_address')}")
-            print(f"To:     {result.get('to_address')}")
-            print(f"Amount: {result.get('amount')} {result.get('token')}")
+            if 'console' in locals():
+                from rich.panel import Panel
+                console.print(Panel(
+                    f"[bold]Transaction Hash:[/bold] {result.get('tx_hash')}\n"
+                    f"[bold]From:[/bold]   {result.get('from_address')}\n"
+                    f"[bold]To:[/bold]     {result.get('to_address')}\n"
+                    f"[bold]Amount:[/bold] {result.get('amount')} {result.get('token')}\n"
+                    f"[bold]Nonce:[/bold]  {result.get('nonce')}",
+                    title="[bold green]✅ TRANSACTION EXECUTED VIA WDK[/bold green]",
+                    border_style="green"
+                ))
+            else:
+                print("✅ TRANSACTION EXECUTED VIA WDK")
+                print(f"Transaction Hash: {result.get('tx_hash')}")
+                print(f"From:   {result.get('from_address')}")
+                print(f"To:     {result.get('to_address')}")
+                print(f"Amount: {result.get('amount')} {result.get('token')}")
         else:
-            print("🛑 TRANSACTION BLOCKED BY AI GUARDIAN")
-            print(f"Reason: {result.get('reason', 'Unknown Error')}")
-            print(f"Risk Level: {result.get('risk_level', 'UNKNOWN')}")
+            if 'console' in locals():
+                from rich.panel import Panel
+                console.print(Panel(
+                    f"[bold]Reason:[/bold] {result.get('reason', 'Unknown Error')}\n"
+                    f"[bold]Risk Level:[/bold] {result.get('risk_level', 'UNKNOWN')}",
+                    title="[bold red]🛑 TRANSACTION BLOCKED BY AI GUARDIAN[/bold red]",
+                    border_style="red"
+                ))
+            else:
+                print("🛑 TRANSACTION BLOCKED BY AI GUARDIAN")
+                print(f"Reason: {result.get('reason', 'Unknown Error')}")
+                print(f"Risk Level: {result.get('risk_level', 'UNKNOWN')}")
             
         print("="*50 + "\n")
 
