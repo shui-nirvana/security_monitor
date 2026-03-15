@@ -2,9 +2,8 @@ import logging
 import time
 from typing import Any
 
-from web3 import Web3
-
 from security_monitor.config.settings import get_settings
+from web3 import Web3
 
 # Configure Logging
 settings = get_settings()
@@ -23,8 +22,11 @@ class BlockchainClient:
     Core Blockchain Interaction Layer
     Handles connection, retries, and error logging.
     """
-    def __init__(self):
+    def __init__(self, chain_key: str | None = None):
         self.settings = get_settings()
+        self.chain_key = (chain_key or self.settings.DEFAULT_CHAIN_KEY).lower()
+        self.rpc_url = self.settings.get_rpc_url(self.chain_key)
+        self.expected_chain_id = self.settings.get_chain_id(self.chain_key)
         self.w3 = self._connect()
 
     def _connect(self) -> Web3:
@@ -32,9 +34,11 @@ class BlockchainClient:
         retries = 3
         for attempt in range(retries):
             try:
-                w3 = Web3(Web3.HTTPProvider(self.settings.RPC_URL))
+                w3 = Web3(Web3.HTTPProvider(self.rpc_url))
                 if w3.is_connected():
-                    logger.info(f"Connected to RPC: {self.settings.RPC_URL} (Chain ID: {w3.eth.chain_id})")
+                    logger.info(
+                        f"Connected to RPC: {self.rpc_url} (Detected Chain ID: {w3.eth.chain_id}, Expected: {self.expected_chain_id}, Key: {self.chain_key})"
+                    )
                     # Inject middleware for PoA chains if needed (e.g. BSC, Polygon)
                     # For Web3.py v6+, geth_poa_middleware is handled differently or not needed for basic reads
                     # w3.middleware_onion.inject(geth_poa_middleware, layer=0)

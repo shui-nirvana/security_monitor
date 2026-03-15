@@ -2,7 +2,6 @@ import logging
 from typing import Any, Dict, Optional
 
 import requests
-
 from security_monitor.config.settings import get_settings
 
 logger = logging.getLogger(__name__)

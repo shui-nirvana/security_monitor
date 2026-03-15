@@ -1,13 +1,8 @@
 import time
-import sys
-import random
+
 from rich.console import Console
 from rich.panel import Panel
-from rich.text import Text
 from rich.prompt import Prompt
-from rich.layout import Layout
-from rich.live import Live
-from rich.table import Table
 
 console = Console()
 
@@ -24,7 +19,6 @@ def demo_success_flow():
     console.print(Panel.fit("[bold green]SCENARIO 1: LEGITIMATE ASSET SWAP (USDT -> GOLD)[/bold green]", border_style="green"))
     time.sleep(1)
 
-    target = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
     amount = "50.0 USDT"
 
     console.print(f"\n[bold cyan]>>> [AI STRATEGY] MARKET DIP DETECTED (RSI < 30). EXECUTING BUY: {amount} -> XAUT (Gold)[/bold cyan]")
@@ -54,10 +48,10 @@ def demo_success_flow():
 
     # 3. Final Report
     console.print(Panel(
-        f"[bold]Transaction Hash:[/bold] 0x7f9a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1\n"
-        f"[bold]Status:[/bold] [green]CONFIRMED[/green]\n"
-        f"[bold]Asset:[/bold]  XAUT (Tether Gold)\n"
-        f"[bold]Amount:[/bold] 0.025 XAUT (~50 USDT)",
+        "[bold]Transaction Hash:[/bold] 0x7f9a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1\n"
+        "[bold]Status:[/bold] [green]CONFIRMED[/green]\n"
+        "[bold]Asset:[/bold]  XAUT (Tether Gold)\n"
+        "[bold]Amount:[/bold] 0.025 XAUT (~50 USDT)",
         title="[bold green]✅ MISSION ACCOMPLISHED[/bold green]",
         border_style="green",
         expand=False
@@ -86,7 +80,7 @@ def demo_attack_flow():
 
     # Pause for dramatic effect
     Prompt.ask("\n[dim]Press Enter to Trigger Guardian Protocol...[/dim]")
-    
+
     # 2. GUARDIAN INTERVENTION
     # Flashing Warning
     for _ in range(3):
@@ -96,14 +90,14 @@ def demo_attack_flow():
         time.sleep(0.1)
 
     console.print("[bold white on red]!!! SECURITY OVERRIDE TRIGGERED !!![/bold white on red]", justify="center")
-    
+
     # 3. Block Report
     error_panel = Panel(
-        f"[bold red]⛔ TRANSACTION BLOCKED BY GUARDIAN PROTOCOL[/bold red]\n\n"
-        f"[bold]Reason 1:[/bold] [red]Phishing Address Detected (Confidence: 99.9%)[/red]\n"
-        f"[bold]Reason 2:[/bold] [red]Policy Violation: Max Transfer Limit (1000 USDT)[/red]\n\n"
-        f"[yellow]Action:[/yellow] Wallet Locked. Admin Notification Sent.\n"
-        f"[yellow]WDK Status:[/yellow] [dim]Signature Rejected.[/dim]",
+        "[bold red]⛔ TRANSACTION BLOCKED BY GUARDIAN PROTOCOL[/bold red]\n\n"
+        "[bold]Reason 1:[/bold] [red]Phishing Address Detected (Confidence: 99.9%)[/red]\n"
+        "[bold]Reason 2:[/bold] [red]Policy Violation: Max Transfer Limit (1000 USDT)[/red]\n\n"
+        "[yellow]Action:[/yellow] Wallet Locked. Admin Notification Sent.\n"
+        "[yellow]WDK Status:[/yellow] [dim]Signature Rejected.[/dim]",
         title="[bold red]🛡 THREAT NEUTRALIZED[/bold red]",
         border_style="red",
         style="white",
@@ -123,9 +117,9 @@ def main():
                 title="[bold cyan]Tether Guardian Visualizer[/bold cyan]",
                 border_style="cyan"
             ))
-            
+
             choice = Prompt.ask("Select Mode", choices=["1", "2", "3", "q"], default="3")
-            
+
             if choice == "1":
                 demo_success_flow()
                 Prompt.ask("\n[dim]Press Enter to return...[/dim]")
@@ -140,7 +134,7 @@ def main():
             elif choice == "q":
                 console.print("[cyan]Exiting...[/cyan]")
                 break
-                
+
     except KeyboardInterrupt:
         console.print("\n[cyan]Exiting...[/cyan]")
 

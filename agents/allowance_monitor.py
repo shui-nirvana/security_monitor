@@ -1,8 +1,7 @@
 from typing import Any, Dict
 
-from web3 import Web3
-
 from security_monitor.core.blockchain import BlockchainClient, logger
+from web3 import Web3
 
 # Standard ERC-20 ABI (Minimal for Allowance)
 ERC20_ABI = [

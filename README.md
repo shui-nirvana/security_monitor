@@ -84,6 +84,10 @@ python main.py --mode guardian --action transfer --asset USDT --to 0x00000000000
 # 🔴 OpenClaw Injection Simulation (AI Block)
 # Target is a known malicious contract in the simulation database
 python main.py --mode guardian --action transfer --asset USDT --to 0x6666666666666666666666666666666666666666 --amount 100
+
+# 🧪 Policy Override Demo (CLI)
+# Use runtime policy overrides for live hackathon demos
+python main.py --mode guardian --action transfer --asset USDT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 30 --daily-total-limit 100 --daily-asset-limits USDT:50,USAT:20 --allow-counterparty 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --max-transfer-amount 40 --no-require-ai-approval
 ```
 
 ### 4. Run: Monitor Mode (Passive Scanner)
@@ -93,6 +97,27 @@ Standard ERC20 allowance auditing.
 ```bash
 python main.py --mode monitor --owner <ADDRESS> --spender <ADDRESS>
 ```
+
+### 5. 30-Second Live Demo Sequence
+
+Use these three commands in order during a live pitch:
+
+```bash
+# Step 1: PASS (safe + policy-compliant)
+python main.py --mode guardian --action transfer --asset USDT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 30 --allow-counterparty 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --max-transfer-amount 40 --no-require-ai-approval
+
+# Step 2: BLOCK (policy limit)
+python main.py --mode guardian --action transfer --asset USDT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 60 --allow-counterparty 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --max-transfer-amount 40 --no-require-ai-approval
+
+# Step 3: BLOCK (blacklist/security override)
+python main.py --mode guardian --action transfer --asset USDT --to 0x000000000000000000000000000000000000dEaD --amount 10 --max-transfer-amount 40 --no-require-ai-approval
+```
+
+Expected highlights:
+
+- Step 1 shows `✅ TRANSACTION EXECUTED VIA WDK`
+- Step 2 shows `🛑 TRANSACTION BLOCKED` with `Amount exceeds policy limit`
+- Step 3 shows `🛑 TRANSACTION BLOCKED` with blacklist/security reason
 
 ---
 

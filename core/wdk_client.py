@@ -188,7 +188,8 @@ class WalletAccount:
         Signs and broadcasts a transaction.
         Enables the Agent to "hold, send, or manage funds" autonomously.
         """
-        logger.info(f"[WDK:WalletAccount] Initiating transfer: {amount} {token_symbol} -> {to_address}")
+        normalized_symbol = token_symbol.upper()
+        logger.info(f"[WDK:WalletAccount] Initiating transfer: {amount} {normalized_symbol} -> {to_address}")
 
         if not self._private_key:
             raise SigningError("Cannot send transaction: Wallet is read-only.")
@@ -199,20 +200,20 @@ class WalletAccount:
 
             # Prepare transaction
             tx_params: TxParams = {
-                'chainId': settings.CHAIN_ID,
+                'chainId': self.w3.eth.chain_id,
                 'gas': 200000, # Estimated gas
                 'gasPrice': self.w3.eth.gas_price,
                 'nonce': cast(Nonce, nonce),
             }
 
-            contract_address = settings.ASSET_CONTRACTS.get(token_symbol)
+            contract_address = settings.ASSET_CONTRACTS.get(normalized_symbol)
             is_erc20 = contract_address and contract_address != "0x0000000000000000000000000000000000000000"
 
             if is_erc20:
                 # ERC20 Transfer
                 checksum_contract = self.w3.to_checksum_address(contract_address)
                 contract = self.w3.eth.contract(address=checksum_contract, abi=ERC20_ABI)
-                decimals = 6 if token_symbol == "USDT" else 18
+                decimals = 6 if normalized_symbol == "USDT" else 18
                 amount_int = int(amount * (10 ** decimals))
 
                 # Build transaction data
@@ -246,7 +247,7 @@ class WalletAccount:
                 "from_address": self.address,
                 "to_address": to_address,
                 "amount": str(amount),
-                "token": token_symbol,
+                "token": normalized_symbol,
                 "block_number": 0, # Placeholder until mined
                 "nonce": nonce
             }
@@ -261,17 +262,22 @@ class WalletManager:
     Factory and manager for WalletAccount instances.
     Mimics the `@tetherto/wdk` orchestrator pattern.
     """
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, chain_key: Optional[str] = None, rpc_url: Optional[str] = None):
         self.api_key = api_key
+        self.chain_key = (chain_key or settings.DEFAULT_CHAIN_KEY).lower()
+        self.rpc_url = rpc_url or settings.get_rpc_url(self.chain_key)
+        self.expected_chain_id = settings.get_chain_id(self.chain_key)
         logger.info("[WDK:WalletManager] Initializing Tether WDK Manager...")
 
         # Initialize Web3 Connection
         try:
-            self.w3 = Web3(Web3.HTTPProvider(settings.RPC_URL))
+            self.w3 = Web3(Web3.HTTPProvider(self.rpc_url))
             if self.w3.is_connected():
-                logger.info(f"[WDK:WalletManager] Connected to RPC: {settings.RPC_URL}")
+                logger.info(
+                    f"[WDK:WalletManager] Connected to RPC: {self.rpc_url} (Detected Chain ID: {self.w3.eth.chain_id}, Expected: {self.expected_chain_id}, Key: {self.chain_key})"
+                )
             else:
-                logger.warning(f"[WDK:WalletManager] Failed to connect to RPC: {settings.RPC_URL}")
+                logger.warning(f"[WDK:WalletManager] Failed to connect to RPC: {self.rpc_url}")
         except Exception as e:
             logger.error(f"[WDK:WalletManager] Error connecting to RPC: {e}")
             # Do not set self.w3 to None, as it breaks type safety.

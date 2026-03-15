@@ -136,6 +136,24 @@ python main.py --mode guardian --action transfer --asset XAUT --to 0xInvalidAddr
 python main.py --mode guardian --action transfer --asset USDT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 999999
 ```
 
+### Case 2.8: Runtime Policy Override (CLI for Live Demo)
+
+**Requirement Met**: "Emphasis on safety: permissions, limits"
+**Description**: Validate that hackathon demos can change policy behavior at runtime without editing `.env`.
+**Expected Result**:
+
+- Transfer is limited by the CLI-provided policy values.
+- Allowed counterparty enforcement follows `--allow-counterparty`.
+- AI mandatory approval can be toggled with `--no-require-ai-approval`.
+
+```bash
+# 1) Successful transfer under overridden policy
+python main.py --mode guardian --action transfer --asset USDT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 30 --daily-total-limit 100 --daily-asset-limits USDT:50 --allow-counterparty 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --max-transfer-amount 40 --no-require-ai-approval
+
+# 2) Blocked transfer exceeding overridden per-asset limit
+python main.py --mode guardian --action transfer --asset USDT --to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --amount 60 --daily-total-limit 100 --daily-asset-limits USDT:50 --allow-counterparty 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --max-transfer-amount 100 --no-require-ai-approval
+```
+
 ---
 
 ## 🎯 Scenario Group 3: Hackathon Track Specifics
