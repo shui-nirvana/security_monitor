@@ -6,16 +6,19 @@
 # ==============================================================================
 
 import asyncio
+import json
 import logging
+import os
+import subprocess
 import time
 import uuid
-from typing import Optional, TypedDict, cast
+from typing import Any, Optional, TypedDict, cast
 
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from security_monitor.config.settings import get_settings
 from web3 import Web3
-from web3.types import Nonce, TxParams
+from web3.types import Nonce, TxParams, Wei
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -68,6 +71,96 @@ class TransactionReceipt(TypedDict):
     token: str
     block_number: int
     nonce: int
+
+
+class _TetherWdkBridge:
+    def __init__(
+        self,
+        rpc_url: str,
+        chain_key: str,
+        seed_phrase: str,
+        account_index: int = 0,
+    ):
+        self.rpc_url = rpc_url
+        self.chain_key = chain_key
+        self.seed_phrase = seed_phrase
+        self.account_index = account_index
+        self.node_cmd = str(getattr(settings, "WDK_NODE_CMD", "node")).strip() or "node"
+        configured_script = str(getattr(settings, "WDK_BRIDGE_SCRIPT", "")).strip()
+        if configured_script:
+            self.script_path = configured_script
+        else:
+            self.script_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "wdk_bridge", "wdk_bridge.mjs")
+            )
+
+    def _invoke(self, payload: dict[str, Any]) -> dict[str, Any]:
+        command = [self.node_cmd, self.script_path]
+        request = {
+            "rpcUrl": self.rpc_url,
+            "chainKey": self.chain_key,
+            "seedPhrase": self.seed_phrase,
+            "accountIndex": self.account_index,
+            **payload,
+        }
+        try:
+            completed = subprocess.run(
+                command,
+                input=json.dumps(request),
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=int(getattr(settings, "WDK_TX_TIMEOUT_SECONDS", 120)),
+            )
+        except FileNotFoundError as exc:
+            raise WDKError(
+                f"Node.js command not found: {self.node_cmd}. Please install Node.js 20+ and WDK npm packages."
+            ) from exc
+        except subprocess.TimeoutExpired as exc:
+            raise WDKError("Tether WDK bridge timed out") from exc
+        if completed.returncode != 0:
+            stderr = (completed.stderr or "").strip()
+            stdout = (completed.stdout or "").strip()
+            details = stderr or stdout or f"bridge_exit_code={completed.returncode}"
+            raise WDKError(f"Tether WDK bridge failed: {details}")
+        try:
+            response = json.loads((completed.stdout or "").strip() or "{}")
+        except json.JSONDecodeError as exc:
+            raise WDKError("Tether WDK bridge returned invalid JSON") from exc
+        if not bool(response.get("success")):
+            raise WDKError(str(response.get("error") or "Unknown WDK bridge error"))
+        return response
+
+    def get_address(self) -> str:
+        response = self._invoke({"action": "get_address"})
+        return str(response.get("address", "")).strip()
+
+    def sign(self, message: str) -> str:
+        response = self._invoke({"action": "sign", "message": message})
+        return str(response.get("signature", "")).strip()
+
+    def get_balance(self, token_contract: Optional[str]) -> int:
+        response = self._invoke({"action": "get_balance", "tokenContract": token_contract})
+        return int(str(response.get("balance", "0")))
+
+    def transfer(
+        self,
+        to_address: str,
+        amount_units: int,
+        token_contract: Optional[str],
+        wait_for_receipt: bool,
+        timeout_seconds: int,
+    ) -> dict[str, Any]:
+        return self._invoke(
+            {
+                "action": "transfer",
+                "toAddress": to_address,
+                "amountUnits": str(amount_units),
+                "tokenContract": token_contract,
+                "waitForReceipt": wait_for_receipt,
+                "timeoutSeconds": timeout_seconds,
+            }
+        )
 
 # --- 3. Async State Synchronization (Nonce Manager) ---
 class NonceManager:
@@ -128,12 +221,18 @@ class WalletAccount:
     Represents a single wallet instance with signing capabilities.
     Mimics the structure of `@tetherto/wdk-wallet-<chain>` WalletAccount class.
     """
-    def __init__(self, address: str, private_key: Optional[str], w3: Web3):
+    def __init__(
+        self,
+        address: str,
+        private_key: Optional[str],
+        w3: Web3,
+        tether_bridge: Optional[_TetherWdkBridge] = None,
+    ):
         self._address = address
         self._private_key = private_key
         self.w3 = w3
+        self._tether_bridge = tether_bridge
         self._id = str(uuid.uuid4())
-        # Initialize Nonce Manager for this account
         self.nonce_manager = NonceManager(address, w3)
 
     @property
@@ -145,6 +244,14 @@ class WalletAccount:
         [Primitive: Read] Gets the balance of the managed wallet.
         """
         logger.info(f"[WDK:WalletAccount] Fetching {token_symbol} balance for {self.address}...")
+        if self._tether_bridge:
+            normalized_symbol = token_symbol.upper()
+            token_contract = settings.ASSET_CONTRACTS.get(normalized_symbol)
+            if not token_contract or token_contract == "0x0000000000000000000000000000000000000000":
+                token_contract = None
+            decimals = 6 if normalized_symbol == "USDT" else 18
+            raw_balance = self._tether_bridge.get_balance(token_contract)
+            return float(raw_balance / (10 ** decimals))
 
         try:
             contract_address = settings.ASSET_CONTRACTS.get(token_symbol)
@@ -171,6 +278,12 @@ class WalletAccount:
         """
         [Primitive: Sign] Signs a raw message.
         """
+        if self._tether_bridge:
+            logger.info(f"[WDK:WalletAccount] Signing message via Tether WDK: {message[:10]}...")
+            signature = self._tether_bridge.sign(message)
+            if not signature:
+                raise SigningError("Tether WDK returned empty signature")
+            return signature
         if not self._private_key:
             raise SigningError("Cannot sign: Wallet is read-only (no private key loaded).")
 
@@ -190,6 +303,33 @@ class WalletAccount:
         """
         normalized_symbol = token_symbol.upper()
         logger.info(f"[WDK:WalletAccount] Initiating transfer: {amount} {normalized_symbol} -> {to_address}")
+        if self._tether_bridge:
+            if amount <= 0:
+                raise TransactionError("Amount must be greater than 0")
+            decimals = 6 if normalized_symbol == "USDT" else 18
+            amount_units = int(amount * (10 ** decimals))
+            token_contract = settings.ASSET_CONTRACTS.get(normalized_symbol)
+            if not token_contract or token_contract == "0x0000000000000000000000000000000000000000":
+                token_contract = None
+            response = self._tether_bridge.transfer(
+                to_address=to_address,
+                amount_units=amount_units,
+                token_contract=token_contract,
+                wait_for_receipt=bool(getattr(settings, "WDK_WAIT_FOR_RECEIPT", True)),
+                timeout_seconds=int(getattr(settings, "WDK_TX_TIMEOUT_SECONDS", 120)),
+            )
+            tx_hash = str(response.get("txHash", ""))
+            block_number = int(response.get("blockNumber", 0) or 0)
+            return {
+                "status": "success",
+                "tx_hash": tx_hash,
+                "from_address": self.address,
+                "to_address": to_address,
+                "amount": str(amount),
+                "token": normalized_symbol,
+                "block_number": block_number,
+                "nonce": -1,
+            }
 
         if not self._private_key:
             raise SigningError("Cannot send transaction: Wallet is read-only.")
@@ -198,20 +338,25 @@ class WalletAccount:
             # Step 0: Nonce Management
             nonce = asyncio.run(self.nonce_manager.get_next_nonce())
 
-            # Prepare transaction
             tx_params: TxParams = {
                 'chainId': self.w3.eth.chain_id,
-                'gas': 200000, # Estimated gas
-                'gasPrice': self.w3.eth.gas_price,
+                'gas': 200000,
                 'nonce': cast(Nonce, nonce),
             }
+            latest_block = self.w3.eth.get_block("latest")
+            base_fee = latest_block.get("baseFeePerGas") if isinstance(latest_block, dict) else None
+            if base_fee is not None:
+                max_priority_fee = int(getattr(self.w3.eth, "max_priority_fee", self.w3.to_wei(2, "gwei")))
+                tx_params["maxPriorityFeePerGas"] = cast(Wei, max_priority_fee)
+                tx_params["maxFeePerGas"] = cast(Wei, int(base_fee) * 2 + max_priority_fee)
+            else:
+                tx_params["gasPrice"] = self.w3.eth.gas_price
 
             contract_address = settings.ASSET_CONTRACTS.get(normalized_symbol)
             is_erc20 = contract_address and contract_address != "0x0000000000000000000000000000000000000000"
 
             if is_erc20:
-                # ERC20 Transfer
-                checksum_contract = self.w3.to_checksum_address(contract_address)
+                checksum_contract = self.w3.to_checksum_address(str(contract_address))
                 contract = self.w3.eth.contract(address=checksum_contract, abi=ERC20_ABI)
                 decimals = 6 if normalized_symbol == "USDT" else 18
                 amount_int = int(amount * (10 ** decimals))
@@ -234,21 +379,25 @@ class WalletAccount:
             signed_tx = self.w3.eth.account.sign_transaction(tx, private_key=self._private_key)
             logger.info(f"[WDK:WalletAccount] Transaction signed. Hash: {signed_tx.hash.hex()} (Nonce: {nonce})")
 
-            # Step 2: Broadcast
-            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            logger.info(f"[WDK:WalletAccount] Broadcast successful! Hash: {tx_hash.hex()}")
-
-            # Optional: Wait for receipt (omitted for speed in this demo agent, or can be added)
-            # receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            tx_hash_bytes = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logger.info(f"[WDK:WalletAccount] Broadcast successful! Hash: {tx_hash_bytes.hex()}")
+            block_number = 0
+            if getattr(settings, "WDK_WAIT_FOR_RECEIPT", True):
+                timeout_seconds = int(getattr(settings, "WDK_TX_TIMEOUT_SECONDS", 120))
+                receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash_bytes, timeout=timeout_seconds)
+                status_value = int(getattr(receipt, "status", 0))
+                if status_value != 1:
+                    raise TransactionError(f"Transaction reverted on-chain: {tx_hash_bytes.hex()}")
+                block_number = int(getattr(receipt, "blockNumber", 0) or 0)
 
             return {
-                "status": "success", # Optimistic status
-                "tx_hash": tx_hash.hex(),
+                "status": "success",
+                "tx_hash": tx_hash_bytes.hex(),
                 "from_address": self.address,
                 "to_address": to_address,
                 "amount": str(amount),
                 "token": normalized_symbol,
-                "block_number": 0, # Placeholder until mined
+                "block_number": block_number,
                 "nonce": nonce
             }
         except Exception as e:
@@ -267,15 +416,33 @@ class WalletManager:
         self.chain_key = (chain_key or settings.DEFAULT_CHAIN_KEY).lower()
         self.rpc_url = rpc_url or settings.get_rpc_url(self.chain_key)
         self.expected_chain_id = settings.get_chain_id(self.chain_key)
+        self.use_tether_wdk = bool(getattr(settings, "WDK_USE_TETHER_WDK", False))
+        self.seed_phrase = str(getattr(settings, "WDK_SEED_PHRASE", "")).strip()
+        self.account_index = int(getattr(settings, "WDK_ACCOUNT_INDEX", 0))
+        self._tether_bridge: Optional[_TetherWdkBridge] = None
+        if self.use_tether_wdk:
+            if not self.seed_phrase:
+                raise WDKError("WDK_USE_TETHER_WDK=true requires WDK_SEED_PHRASE")
+            self._tether_bridge = _TetherWdkBridge(
+                rpc_url=self.rpc_url,
+                chain_key=self.chain_key,
+                seed_phrase=self.seed_phrase,
+                account_index=self.account_index,
+            )
         logger.info("[WDK:WalletManager] Initializing Tether WDK Manager...")
 
         # Initialize Web3 Connection
         try:
             self.w3 = Web3(Web3.HTTPProvider(self.rpc_url))
             if self.w3.is_connected():
+                detected_chain_id = int(self.w3.eth.chain_id)
                 logger.info(
-                    f"[WDK:WalletManager] Connected to RPC: {self.rpc_url} (Detected Chain ID: {self.w3.eth.chain_id}, Expected: {self.expected_chain_id}, Key: {self.chain_key})"
+                    f"[WDK:WalletManager] Connected to RPC: {self.rpc_url} (Detected Chain ID: {detected_chain_id}, Expected: {self.expected_chain_id}, Key: {self.chain_key})"
                 )
+                if detected_chain_id != self.expected_chain_id:
+                    logger.warning(
+                        f"[WDK:WalletManager] Chain ID mismatch detected: rpc={detected_chain_id}, configured={self.expected_chain_id}"
+                    )
             else:
                 logger.warning(f"[WDK:WalletManager] Failed to connect to RPC: {self.rpc_url}")
         except Exception as e:
@@ -290,6 +457,13 @@ class WalletManager:
         """
         logger.info(f"[WDK:WalletManager] Creating new {chain.upper()} wallet...")
 
+        if self._tether_bridge:
+            address = self._tether_bridge.get_address()
+            if not address:
+                raise WDKError("Failed to derive address from Tether WDK")
+            wallet = WalletAccount(address, None, self.w3, tether_bridge=self._tether_bridge)
+            logger.info(f"[WDK:WalletManager] Wallet loaded from Tether WDK seed: {wallet.address}")
+            return wallet
         account = Account.create()
         wallet = WalletAccount(account.address, account.key.hex(), self.w3)
 
@@ -301,6 +475,11 @@ class WalletManager:
         [Primitive: Restore]
         Restores a wallet from a private key.
         """
+        if self._tether_bridge:
+            address = self._tether_bridge.get_address()
+            if not address:
+                raise WDKError("Failed to derive address from Tether WDK")
+            return WalletAccount(address, None, self.w3, tether_bridge=self._tether_bridge)
         try:
             account = Account.from_key(private_key)
             return WalletAccount(account.address, private_key, self.w3)

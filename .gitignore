@@ -1,6 +1,7 @@
 # Ignore Log files
 *.log
 security_monitor.log
+logs/
 
 # Ignore Environment Variables
 .env
@@ -8,3 +9,11 @@ security_monitor.log
 # Ignore Python specific files
 __pycache__/
 *.pyc
+.pytest_cache/
+.mypy_cache/
+
+# Ignore runtime/generated artifacts
+*.tmp
+*.temp
+wdk_bridge/node_modules/
+wdk_bridge/package-lock.json

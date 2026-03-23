@@ -30,5 +30,12 @@ This file provides AI agents (Cursor, Trae, Copilot, etc.) with persistent conte
 
 ## 🛠️ Project Implementation Status
 
-- **Core Wrapper**: `core/wdk_client.py` (Mocks the official SDK for Hackathon demo).
+- **Core Wrapper**: `core/wdk_client.py` (WDK-compatible Python primitives with direct bridge support).
 - **Agent Logic**: `agents/guardian_agent.py` (Implements the "AI Guardian" pattern).
+- **Official SDK Bridge**: `wdk_bridge/wdk_bridge.mjs` (Directly calls `@tetherto/wdk` and `@tetherto/wdk-wallet-evm`).
+
+## 🧹 Commit Hygiene
+
+- Do not commit generated/runtime files.
+- Keep logs untracked (`*.log`, `security_monitor.log`).
+- Keep Node runtime artifacts untracked (`wdk_bridge/node_modules`, `wdk_bridge/package-lock.json`).

@@ -17,8 +17,9 @@ An autonomous financial agent that combines **AI Risk Analysis (The Brain)** wit
 
 ### 2. 🔌 Native Tether WDK Integration
 
-- **WalletManager**: Full lifecycle management (Creation, Restoration, Signing) using real Web3/EVM primitives.
+- **WalletManager**: Full lifecycle management (Creation, Restoration, Signing) with runtime switch between local Web3 and official WDK bridge mode.
 - **NonceManager**: **[Bonus Feature]** Implements asynchronous state synchronization to handle high-concurrency Nonce conflicts during rapid agent actions.
+- **Official SDK Bridge**: `wdk_bridge/wdk_bridge.mjs` calls `@tetherto/wdk` + `@tetherto/wdk-wallet-evm` directly for address derivation, signing, and transfer execution.
 - **Primitives**: Direct use of WDK primitives for signing and broadcasting transactions for **USDT**, **USAT**, and **XAUT**.
 
 ### 3. 🖥️ Matrix-Style Visual Dashboard
@@ -41,6 +42,7 @@ An autonomous financial agent that combines **AI Risk Analysis (The Brain)** wit
 
 ```bash
 pip install -r requirements.txt
+cd security_monitor/wdk_bridge && npm install
 ```
 
 ### 2. Configuration
@@ -51,6 +53,11 @@ Copy `.env.example` to `.env` and configure your keys.
 cp .env.example .env
 # Edit .env:
 # - WDK_PRIVATE_KEY (Optional, for restoring wallet)
+# - WDK_USE_TETHER_WDK (Set True to force official @tetherto WDK path)
+# - WDK_SEED_PHRASE (Required when WDK_USE_TETHER_WDK=True)
+# - WDK_ACCOUNT_INDEX (Optional, default 0)
+# - WDK_NODE_CMD (Optional, default node)
+# - WDK_BRIDGE_SCRIPT (Optional, bridge script path)
 # - RPC_URL (Required)
 # - LLM_API_KEY (Optional - System defaults to Simulation Mode if missing)
 # - GUARDIAN_MAX_TRANSFER_AMOUNT (Optional transfer policy limit)
@@ -127,6 +134,7 @@ Expected highlights:
 | --------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | **Guardian Agent**    | [`agents/guardian_agent.py`](./agents/guardian_agent.py)       | **The Orchestrator**. Coordinates Brain & Hands. Implements "Security Override". |
 | **WDK Client**        | [`core/wdk_client.py`](./core/wdk_client.py)                   | **The Hands**. WDK primitives, `WalletAccount`, `NonceManager`.                  |
+| **WDK Bridge (Node)** | [`wdk_bridge/wdk_bridge.mjs`](./wdk_bridge/wdk_bridge.mjs)     | Direct adapter to official `@tetherto/wdk` and `@tetherto/wdk-wallet-evm`.       |
 | **Allowance Monitor** | [`agents/allowance_monitor.py`](./agents/allowance_monitor.py) | **The Logic**. Deterministic safety checks.                                      |
 | **AI Analyzer**       | [`agents/ai_analyzer.py`](./agents/ai_analyzer.py)             | **The Brain**. Probabilistic risk assessment.                                    |
 | **Visualizer**        | [`utils/matrix_ui.py`](./utils/matrix_ui.py)                   | **The UI**. Matrix-style console rendering.                                      |
@@ -151,7 +159,7 @@ We have designed specific scenarios to verify Hackathon compliance, including:
 
 This project fulfills the **"Build Agents with Tether WDK"** track requirements:
 
-- [x] **Integrate Tether WDK**: Uses WDK primitives for all wallet operations.
+- [x] **Integrate Tether WDK**: Uses official `@tetherto/wdk` + `@tetherto/wdk-wallet-evm` through a direct bridge and WDK-compatible Python primitives.
 - [x] **Autonomous Fund Management**: Agent policy layer supports USD₮ / USA₮ / XAU₮ asset routing.
 - [x] **Emphasis on Safety**: Implements "Security Override" (Logic > AI) and strict permission checks.
 - [x] **Agent Reasoning**: Uses LLM for context analysis (OpenClaw equivalent).

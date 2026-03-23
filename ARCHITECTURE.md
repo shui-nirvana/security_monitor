@@ -57,6 +57,7 @@ Located in `core/wdk_client.py`.
 
 - **WalletManager**: The factory that manages keys and identities.
 - **WalletAccount**: The actor that holds the private key (securely) and signs transactions.
+- **Bridge Mode**: When `WDK_USE_TETHER_WDK=true`, Python calls `wdk_bridge/wdk_bridge.mjs`, which directly invokes official `@tetherto/wdk` and `@tetherto/wdk-wallet-evm`.
 - **WDK Primitives**: Direct implementation of:
   - `create_wallet()`
   - `sign_message()`
@@ -151,6 +152,9 @@ security_monitor/
 ├── core/                   # INFRASTRUCTURE LAYER
 │   ├── blockchain.py       # Web3.py / RPC Connection
 │   └── wdk_client.py       # [CORE] Tether WDK Implementation (WalletManager)
+├── wdk_bridge/             # OFFICIAL WDK BRIDGE LAYER
+│   ├── package.json        # @tetherto SDK dependencies
+│   └── wdk_bridge.mjs      # Node adapter for direct WDK calls
 ├── AGENTS.md               # [AI] Context for AI Coding Assistants
 ├── MCP_CONFIG.json         # [AI] MCP Server Configuration
 ├── main.py                 # CLI Entry Point
@@ -165,3 +169,4 @@ security_monitor/
     - _Example_: If the AI says "Safe" but the address is in a local hardcoded blacklist, the Logic module overrides the AI and BLOCKS the transaction.
 4.  **Fail-Safe Defaults**: If the AI service is unreachable or returns an error, the Guardian defaults to **BLOCKING** the transaction (Conservative Security).
 5.  **Ephemeral Keys**: By default, the system generates ephemeral keys for demo purposes unless a specific `WDK_PRIVATE_KEY` is injected via environment variables.
+6.  **Artifact Hygiene**: Logs and generated runtime artifacts (`*.log`, `wdk_bridge/node_modules`, `wdk_bridge/package-lock.json`) are excluded from commit scope.

@@ -1,0 +1,9 @@
+{
+  "name": "security-monitor-wdk-bridge",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@tetherto/wdk": "latest",
+    "@tetherto/wdk-wallet-evm": "latest"
+  }
+}

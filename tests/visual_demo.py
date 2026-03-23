@@ -1,32 +1,16 @@
 import argparse
-import os
 import re
-import sys
 import time
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 from unittest.mock import patch
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(os.path.dirname(CURRENT_DIR))
-APP_ROOT = os.path.dirname(CURRENT_DIR)
-if PROJECT_ROOT not in sys.path:
-    sys.path.append(PROJECT_ROOT)
-if APP_ROOT not in sys.path:
-    sys.path.append(APP_ROOT)
-
-try:
-    from security_monitor.agents.ai_analyzer import AIAnalyzer
-    from security_monitor.agents.guardian_agent import GuardianAgent
-except ModuleNotFoundError:
-    from agents.ai_analyzer import AIAnalyzer
-    from agents.guardian_agent import GuardianAgent
-
+from security_monitor.agents.ai_analyzer import AIAnalyzer
+from security_monitor.agents.guardian_agent import GuardianAgent
 
 console = Console()
 
@@ -110,7 +94,7 @@ class CompetitionDemo:
                 daily_asset_limits=daily_asset_limits,
             ),
         ):
-            return GuardianAgent(wallet, monitor, ai)
+            return GuardianAgent(cast(Any, wallet), cast(Any, monitor), ai)
 
     def _pause(self):
         if self.speed > 0:
