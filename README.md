@@ -197,6 +197,38 @@ We have designed specific scenarios to verify Hackathon compliance, including:
 
 ---
 
+## 💼 Business Readiness: Risks & Mitigations
+
+### Key Commercial Gaps
+
+- **Regulatory positioning is not yet finalized**: The product executes fund operations, so legal classification (tooling vs. delegated execution service) must be explicitly defined per target market.
+- **Production transaction reliability is not yet proven**: Testnet validation is working, but successful on-chain transfer consistency still needs stronger evidence under real operational conditions.
+- **Operational dependency concentration is high**: Runtime relies on Node bridge availability, official WDK packages, and RPC uptime; enterprise buyers typically require clearer uptime guarantees.
+- **Security governance is not enterprise-grade yet**: Seed-based operation via environment variables is practical for demos, but enterprise deployment usually requires KMS/HSM-backed key custody and stricter access control.
+- **Performance improvements are not yet quantified for buyers**: Architecture is improved, but business-facing metrics (P50/P95 latency, success rate, failure recovery rate) are not yet published.
+- **Risk decisions need stronger auditability**: Safety-first policy exists, but commercial deployments need exportable evidence for every allow/block decision to support compliance and incident review.
+
+### Commercial Mitigation Plan
+
+- **Compliance track**: Define jurisdiction-specific product boundary, KYC/AML responsibility model, and policy ownership in customer contracts.
+- **Reliability track**: Add transaction lifecycle telemetry (submitted, pending, confirmed, failed) and publish weekly reliability dashboards.
+- **Resilience track**: Implement multi-RPC failover and health-based routing for bridge and chain connectivity.
+- **Security track**: Move from raw seed handling to managed key infrastructure (KMS/HSM), including rotation and permission scoping.
+- **Performance track**: Benchmark old vs. new bridge mode and publish measurable gains with reproducible scripts.
+- **Audit track**: Persist structured decision logs linking AI score, deterministic rule checks, policy overrides, and final execution outcome.
+
+### Old vs New Value Framing (Business Perspective)
+
+| Dimension                 | Previous Runtime Model       | Current Runtime Model                             |
+| ------------------------- | ---------------------------- | ------------------------------------------------- |
+| Response behavior         | Cold-start heavy per request | Warm-call optimized via persistent bridge         |
+| User experience           | Variable latency spikes      | More stable repeated-call latency                 |
+| Infrastructure efficiency | Repeated bootstrap overhead  | Better process and memory reuse                   |
+| Failure visibility        | Basic exit-code style errors | Structured error surfaces with reconnect behavior |
+| Commercial narrative      | Technical feasibility demo   | Early-stage production architecture baseline      |
+
+---
+
 ## ✅ Hackathon Track Compliance
 
 This project fulfills the **"Build Agents with Tether WDK"** track requirements:
