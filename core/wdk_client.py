@@ -6,10 +6,12 @@
 # ==============================================================================
 
 import asyncio
+import atexit
 import json
 import logging
 import os
 import subprocess
+import threading
 import time
 import uuid
 from typing import Any, Optional, TypedDict, cast
@@ -93,9 +95,90 @@ class _TetherWdkBridge:
             self.script_path = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), "..", "wdk_bridge", "wdk_bridge.mjs")
             )
+        self._process: Optional[subprocess.Popen[str]] = None
+        self._io_lock = threading.Lock()
+        self._stderr_lock = threading.Lock()
+        self._stderr_lines: list[str] = []
+        self._stderr_thread: Optional[threading.Thread] = None
+        atexit.register(self.close)
+
+    def _consume_stderr(self, process: subprocess.Popen[str]) -> None:
+        stderr_stream = process.stderr
+        if stderr_stream is None:
+            return
+        while True:
+            line = stderr_stream.readline()
+            if line == "":
+                break
+            cleaned = line.strip()
+            if not cleaned:
+                continue
+            with self._stderr_lock:
+                self._stderr_lines.append(cleaned)
+                if len(self._stderr_lines) > 20:
+                    self._stderr_lines = self._stderr_lines[-20:]
+
+    def _get_stderr_tail(self) -> str:
+        with self._stderr_lock:
+            if not self._stderr_lines:
+                return ""
+            return " | ".join(self._stderr_lines[-5:])
+
+    def _start_process(self) -> subprocess.Popen[str]:
+        command = [self.node_cmd, self.script_path]
+        try:
+            process = subprocess.Popen(
+                command,
+                text=True,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                bufsize=1,
+            )
+        except FileNotFoundError as exc:
+            raise WDKError(
+                f"Node.js command not found: {self.node_cmd}. Please install Node.js 20+ and WDK npm packages."
+            ) from exc
+        self._process = process
+        self._stderr_lines = []
+        self._stderr_thread = threading.Thread(
+            target=self._consume_stderr,
+            args=(process,),
+            daemon=True,
+        )
+        self._stderr_thread.start()
+        return process
+
+    def _ensure_process(self) -> subprocess.Popen[str]:
+        current = self._process
+        if current and current.poll() is None:
+            return current
+        return self._start_process()
+
+    def _stop_process(self) -> None:
+        process = self._process
+        self._process = None
+        if not process:
+            return
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=2)
+        if process.stdin:
+            process.stdin.close()
+        if process.stdout:
+            process.stdout.close()
+        if process.stderr:
+            process.stderr.close()
+
+    def close(self) -> None:
+        with self._io_lock:
+            self._stop_process()
 
     def _invoke(self, payload: dict[str, Any]) -> dict[str, Any]:
-        command = [self.node_cmd, self.script_path]
         request = {
             "rpcUrl": self.rpc_url,
             "chainKey": self.chain_key,
@@ -103,28 +186,32 @@ class _TetherWdkBridge:
             "accountIndex": self.account_index,
             **payload,
         }
+        for attempt in range(2):
+            response_line = ""
+            try:
+                with self._io_lock:
+                    process = self._ensure_process()
+                    if process.stdin is None or process.stdout is None:
+                        raise WDKError("Tether WDK bridge I/O streams are unavailable")
+                    process.stdin.write(json.dumps(request) + "\n")
+                    process.stdin.flush()
+                    response_line = process.stdout.readline()
+            except (BrokenPipeError, OSError):
+                self._stop_process()
+                if attempt == 0:
+                    continue
+                raise WDKError("Tether WDK bridge process disconnected unexpectedly")
+            if not response_line:
+                self._stop_process()
+                details = self._get_stderr_tail() or "bridge returned empty response"
+                if attempt == 0:
+                    continue
+                raise WDKError(f"Tether WDK bridge failed: {details}")
+            break
+        else:
+            raise WDKError("Tether WDK bridge failed after retry")
         try:
-            completed = subprocess.run(
-                command,
-                input=json.dumps(request),
-                text=True,
-                capture_output=True,
-                check=False,
-                timeout=int(getattr(settings, "WDK_TX_TIMEOUT_SECONDS", 120)),
-            )
-        except FileNotFoundError as exc:
-            raise WDKError(
-                f"Node.js command not found: {self.node_cmd}. Please install Node.js 20+ and WDK npm packages."
-            ) from exc
-        except subprocess.TimeoutExpired as exc:
-            raise WDKError("Tether WDK bridge timed out") from exc
-        if completed.returncode != 0:
-            stderr = (completed.stderr or "").strip()
-            stdout = (completed.stdout or "").strip()
-            details = stderr or stdout or f"bridge_exit_code={completed.returncode}"
-            raise WDKError(f"Tether WDK bridge failed: {details}")
-        try:
-            response = json.loads((completed.stdout or "").strip() or "{}")
+            response = json.loads(response_line.strip() or "{}")
         except json.JSONDecodeError as exc:
             raise WDKError("Tether WDK bridge returned invalid JSON") from exc
         if not bool(response.get("success")):

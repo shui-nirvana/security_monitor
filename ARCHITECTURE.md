@@ -63,6 +63,31 @@ Located in `core/wdk_client.py`.
   - `sign_message()`
   - `send_transaction()`
 
+#### Organizer Gap Closure & Runtime Optimization
+
+- **Gap**: organizer feedback required clearer runtime evidence of direct official WDK invocation.
+- **Closure**: Python primitives now execute through `wdk_bridge/wdk_bridge.mjs`, which imports and calls:
+  - `@tetherto/wdk`
+  - `@tetherto/wdk-wallet-evm`
+- **Optimization**:
+  - Python bridge uses persistent `subprocess.Popen` instead of per-call process creation.
+  - Node bridge runs as a long-lived loop (`readline` over stdin), handling one JSON request per line.
+  - WDK account context is cached by `(seedPhrase, rpcUrl, chainKey, accountIndex)`.
+- **Reliability additions**:
+  - Python side lock-guarded request serialization.
+  - Disconnect retry/restart path.
+  - stderr tail capture for actionable error surfacing.
+
+#### Runtime Mode Comparison (Before vs After)
+
+| Layer | Before | After |
+| --- | --- | --- |
+| Python -> Node | one-shot `subprocess.run` | persistent `subprocess.Popen` |
+| Node lifecycle | start/execute/exit per request | long-lived process with request loop |
+| SDK load | repeated per call | loaded once then reused |
+| Account bootstrap | repeated per call | cached context reuse |
+| Throughput profile | cold-start dominated | warm-call optimized |
+
 ### 🤖 The Guardian: Agent Orchestrator
 
 Located in `agents/guardian_agent.py`.

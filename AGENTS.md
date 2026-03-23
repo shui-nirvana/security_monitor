@@ -34,6 +34,20 @@ This file provides AI agents (Cursor, Trae, Copilot, etc.) with persistent conte
 - **Agent Logic**: `agents/guardian_agent.py` (Implements the "AI Guardian" pattern).
 - **Official SDK Bridge**: `wdk_bridge/wdk_bridge.mjs` (Directly calls `@tetherto/wdk` and `@tetherto/wdk-wallet-evm`).
 
+## 🧾 WDK Audit Notes (For Organizer Review)
+
+- **Gap recorded**: previous runtime path needed stronger proof of direct official SDK invocation.
+- **Fix applied**: execution path now explicitly routes Python WDK primitives to `wdk_bridge/wdk_bridge.mjs`, which imports official `@tetherto/*` packages.
+- **Primitive mapping**:
+  - `create_wallet` -> `get_address`
+  - `sign_message` -> `sign`
+  - `send_transaction` -> `transfer`
+  - `get_balance` -> `get_balance`
+- **Performance upgrade**:
+  - Old: per-call `subprocess.run` (cold boot each request).
+  - New: persistent `subprocess.Popen` + line-based JSON IPC + in-process context cache.
+  - Operational impact: warm calls skip repeated Node + WDK bootstrap and return faster.
+
 ## 🧹 Commit Hygiene
 
 - Do not commit generated/runtime files.

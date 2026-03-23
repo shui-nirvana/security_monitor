@@ -155,6 +155,48 @@ We have designed specific scenarios to verify Hackathon compliance, including:
 
 ---
 
+## 🧾 Official Review Notes (2026-03-23)
+
+### 1) Gap Identified by Organizers
+
+- **Requirement focus**: "Use Tether’s Wallet Development Kit (WDK) primitives directly."
+- **Original gap**: Python execution path exposed WDK-like primitives, but the external call path needed explicit proof of official `@tetherto/*` SDK invocation in runtime.
+
+### 2) Remediation Implemented
+
+- Added a direct Node adapter: `wdk_bridge/wdk_bridge.mjs`.
+- Adapter imports and calls official packages:
+  - `@tetherto/wdk`
+  - `@tetherto/wdk-wallet-evm`
+- Python `core/wdk_client.py` now routes to this adapter when `WDK_USE_TETHER_WDK=true`.
+- Covered direct primitive mapping:
+  - `create_wallet()` -> `get_address`
+  - `sign_message()` -> `sign`
+  - `send_transaction()` -> `transfer`
+  - `get_balance()` -> `get_balance`
+
+### 3) Performance Optimization (Persistent Bridge)
+
+- **Problem in old mode**: each request repeated process startup and SDK loading.
+- **New mode**:
+  - Python keeps a persistent Node child process via `subprocess.Popen`.
+  - Request/response uses newline-delimited JSON over `stdin` / `stdout`.
+  - Node bridge runs a long-lived read loop and caches WDK account context by `(seedPhrase, rpcUrl, chainKey, accountIndex)`.
+- **Result**: repeated calls avoid repeated Node VM/bootstrap overhead and significantly reduce warm-request latency.
+
+### 4) Old vs New Runtime Mode
+
+| Dimension           | Old (Per-call Process)           | New (Persistent Process)                |
+| ------------------- | -------------------------------- | --------------------------------------- |
+| Process model       | `subprocess.run` each invocation | single `subprocess.Popen` reused        |
+| Node startup cost   | paid every call                  | paid once per bridge lifecycle          |
+| WDK package loading | repeated                         | reused in memory                        |
+| RPC/account init    | repeated                         | cached context reuse                    |
+| Transport           | one-shot stdin/stdout            | streaming line-based JSON protocol      |
+| Failure handling    | call-level exit code only        | retry + reconnect + stderr tail capture |
+
+---
+
 ## ✅ Hackathon Track Compliance
 
 This project fulfills the **"Build Agents with Tether WDK"** track requirements:
