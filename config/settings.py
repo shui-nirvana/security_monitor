@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     GUARDIAN_REQUIRE_AI_APPROVAL: bool = True
     GUARDIAN_DAILY_TOTAL_LIMIT: float = 5000.0
     GUARDIAN_DAILY_ASSET_LIMITS: str = "USDT:3000,USAT:3000,XAUT:5"
-    WDK_USE_TETHER_WDK: bool = False
+    WDK_USE_TETHER_WDK: bool = True
     WDK_SEED_PHRASE: str = ""
     WDK_ACCOUNT_INDEX: int = 0
     WDK_NODE_CMD: str = "node"

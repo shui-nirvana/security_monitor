@@ -53,7 +53,7 @@ Copy `.env.example` to `.env` and configure your keys.
 cp .env.example .env
 # Edit .env:
 # - WDK_PRIVATE_KEY (Optional, for restoring wallet)
-# - WDK_USE_TETHER_WDK (Set True to force official @tetherto WDK path)
+# - WDK_USE_TETHER_WDK (Must remain True for official @tetherto WDK execution path)
 # - WDK_SEED_PHRASE (Required when WDK_USE_TETHER_WDK=True)
 # - WDK_ACCOUNT_INDEX (Optional, default 0)
 # - WDK_NODE_CMD (Optional, default node)
@@ -229,6 +229,16 @@ We have designed specific scenarios to verify Hackathon compliance, including:
 
 ---
 
+## 🔎 Third-Party Services & Components Disclosure
+
+- **Tether WDK SDKs**: `@tetherto/wdk`, `@tetherto/wdk-wallet-evm` (wallet/account primitives and transaction execution via Node bridge).
+- **Blockchain Stack**: `web3.py` + public RPC endpoints configured in [`config/settings.py`](./config/settings.py).
+- **AI Services (Optional)**: DeepSeek/Gemini-compatible LLM API endpoint via `.env` (`LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`).
+- **Python Dependencies**: Declared in [`requirements.txt`](./requirements.txt) and required for runtime, testing, and UI rendering.
+- **Node Dependencies**: Declared in [`wdk_bridge/package.json`](./wdk_bridge/package.json) and required for official WDK bridge mode.
+
+---
+
 ## ✅ Hackathon Track Compliance
 
 This project fulfills the **"Build Agents with Tether WDK"** track requirements:
@@ -238,6 +248,8 @@ This project fulfills the **"Build Agents with Tether WDK"** track requirements:
 - [x] **Emphasis on Safety**: Implements "Security Override" (Logic > AI) and strict permission checks.
 - [x] **Agent Reasoning**: Uses LLM for context analysis (OpenClaw equivalent).
 - [x] **Bonus**: Implemented `NonceManager` for async state sync.
+- [x] **License Requirement**: Apache-2.0 license file is provided at project root.
+- [x] **Third-Party Disclosure**: External SDKs/services/components are disclosed in this README.
 
 ---
 
